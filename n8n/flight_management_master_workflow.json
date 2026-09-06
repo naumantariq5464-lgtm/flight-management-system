@@ -1,0 +1,646 @@
+{
+  "name": "Flight Management System - Unified Master Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## ✈️ UNIFIED FLIGHT MANAGEMENT MASTER AUTOMATION\n\n**Single Unified Pipeline with Central Switch Router**\n1. **FastAPI Webhook Trigger**: Receives live event dispatches (Flight Cancelled, Booking Confirmed, Manual Sync).\n2. **Master Schedule Trigger**: Recurring cron heartbeat executing periodic maintenance.\n3. **Event Classifier & Dispatcher**: Formats incoming payload.\n4. **Master Switch Router**: Routes cleanly to 7 automated sub-branches without RAG/Pinecone overhead.\n5. **Automations Included**:\n   - Waitlist Auto-Promotion (`FOR UPDATE SKIP LOCKED`)\n   - Check-in Reminders (Cancelled Flight Suppression)\n   - Refund SLA Escalation Alert\n   - Daily Ops Revenue & Load Report\n   - Bot & Fraud Velocity Detection\n   - Expired Seat-Hold State Reconciliation\n   - Live Event Email Notifier (Flight Cancellations/Changes)",
+        "height": 380,
+        "width": 1400
+      },
+      "id": "sticky-master-overview",
+      "name": "Architecture Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [200, -320]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "flight-events",
+        "options": {
+          "responseMode": "onReceived",
+          "responseData": "allEntries"
+        }
+      },
+      "id": "webhook-trigger",
+      "name": "FastAPI Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 120],
+      "webhookId": "flight-events"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "cron-heartbeat",
+      "name": "Schedule Heartbeat (5m)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst item = items[0]?.json || {};\n\n// Determine if trigger was Webhook or Cron Schedule\nlet eventType = 'WAITLIST_PROMOTION'; // Default for scheduled heartbeat\n\nif (item.body && item.body.event_type) {\n  eventType = item.body.event_type.toUpperCase();\n} else if (item.event_type) {\n  eventType = item.event_type.toUpperCase();\n} else if (item.action) {\n  eventType = item.action.toUpperCase();\n}\n\nconst payload = item.body || item;\n\nreturn [{\n  json: {\n    event_type: eventType,\n    flight_id: payload.flight_id || null,\n    flight_number: payload.flight_number || null,\n    pnr: payload.pnr || null,\n    customer_email: payload.customer_email || payload.recipient_email || 'customer@flightsystem.com',\n    message: payload.message || 'Automated Pipeline Trigger',\n    triggered_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "event-classifier",
+      "name": "Event Classifier & Normalizer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 220]
+    },
+    {
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.event_type }}",
+                    "rightValue": "WAITLIST_PROMOTION",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.event_type }}",
+                    "rightValue": "CHECKIN_REMINDER",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.event_type }}",
+                    "rightValue": "REFUND_ESCALATION",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.event_type }}",
+                    "rightValue": "DAILY_OPS_REPORT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.event_type }}",
+                    "rightValue": "FRAUD_VELOCITY_SCAN",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.event_type }}",
+                    "rightValue": "HOLD_RECONCILIATION",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.event_type }}",
+                    "rightValue": "FLIGHT_CANCELLED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": 0
+        }
+      },
+      "id": "master-switch-router",
+      "name": "Master Event Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [720, 220]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT w.id AS waitlist_id, w.flight_id, w.seat_class, w.contact_email, w.passenger_first_name, w.passenger_last_name, s.id AS seat_id, s.seat_number, f.flight_number, f.origin, f.destination FROM waitlists w JOIN flights f ON f.id = w.flight_id JOIN LATERAL (SELECT id, seat_number FROM seats WHERE flight_id = w.flight_id AND seat_class = w.seat_class AND status = 'AVAILABLE' LIMIT 1) s ON true WHERE w.status = 'WAITING' AND f.status != 'CANCELLED' ORDER BY w.priority_score DESC, w.created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED;"
+      },
+      "id": "waitlist-query-lock",
+      "name": "1. Lock Waitlist Candidate",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1020, -120],
+      "credentials": {
+        "postgres": {
+          "id": "neon_postgres_credential",
+          "name": "Neon PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nif (!items.length || !items[0].json.waitlist_id) return [];\nconst token = 'CLAIM-' + Math.random().toString(36).substring(2, 10).toUpperCase();\nconst expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();\nreturn [{ json: { ...items[0].json, claim_token: token, claim_expires_at: expiresAt } }];"
+      },
+      "id": "waitlist-generate-token",
+      "name": "1b. Generate 24h Claim Token",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1240, -120]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE waitlists SET status = 'PROMOTED', claim_token = '{{ $json.claim_token }}', claim_expires_at = '{{ $json.claim_expires_at }}', promoted_at = NOW(), promoted_seat_id = '{{ $json.seat_id }}' WHERE id = '{{ $json.waitlist_id }}'; UPDATE seats SET status = 'HELD' WHERE id = '{{ $json.seat_id }}';"
+      },
+      "id": "waitlist-update-seat",
+      "name": "1c. Hold Seat & Promote",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1460, -120],
+      "credentials": {
+        "postgres": {
+          "id": "neon_postgres_credential",
+          "name": "Neon PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.contact_email }}",
+        "subject": "=Seat Available on Flight {{ $json.flight_number }} - Action Required",
+        "message": "=Dear {{ $json.passenger_first_name }},\n\nA seat has opened up for you on Flight {{ $json.flight_number }} ({{ $json.origin }} -> {{ $json.destination }}).\n\nYour 24-Hour Claim Token: {{ $json.claim_token }}\nExpires: {{ $json.claim_expires_at }}\n\nPlease log in to confirm your seat."
+      },
+      "id": "waitlist-gmail-alert",
+      "name": "1d. Gmail: Waitlist Claim",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1680, -120],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail_oauth_credential",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT b.id AS booking_id, b.pnr, b.contact_email, f.flight_number, f.origin, f.destination, f.departure_time FROM bookings b JOIN flights f ON f.id = b.flight_id WHERE b.status = 'CONFIRMED' AND f.status != 'CANCELLED' AND f.departure_time >= NOW() AND f.departure_time <= NOW() + INTERVAL '24 hours' AND NOT EXISTS (SELECT 1 FROM notifications n WHERE n.booking_id = b.id AND n.title LIKE '%Check-in%');"
+      },
+      "id": "checkin-query-active",
+      "name": "2. Query Checkin Passengers",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1020, 60],
+      "credentials": {
+        "postgres": {
+          "id": "neon_postgres_credential",
+          "name": "Neon PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.contact_email }}",
+        "subject": "=Check-in Now Open: Flight {{ $json.flight_number }} (PNR: {{ $json.pnr }})",
+        "message": "=Dear Passenger,\n\nOnline check-in is now open for your flight.\n\nFlight: {{ $json.flight_number }}\nRoute: {{ $json.origin }} -> {{ $json.destination }}\nDeparture: {{ $json.departure_time }}\nPNR: {{ $json.pnr }}\n\nPlease check in online to receive your boarding pass."
+      },
+      "id": "checkin-gmail-send",
+      "name": "2b. Gmail: Check-in Reminder",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1240, 60],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail_oauth_credential",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO notifications (id, recipient_email, title, message, notification_type, status, source, flight_id, booking_id, sent_at, created_at, updated_at) VALUES (gen_random_uuid(), '{{ $json.contact_email }}', 'Check-in Reminder Sent', 'Flight {{ $json.flight_number }}', 'EMAIL', 'SENT', 'N8N', NULL, '{{ $json.booking_id }}', NOW(), NOW(), NOW());"
+      },
+      "id": "checkin-log-notif",
+      "name": "2c. Log Checkin Notification",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1460, 60],
+      "credentials": {
+        "postgres": {
+          "id": "neon_postgres_credential",
+          "name": "Neon PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT r.id AS refund_id, r.booking_id, r.amount, r.reason, r.status, r.created_at, b.pnr, b.contact_email FROM refunds r JOIN bookings b ON b.id = r.booking_id WHERE r.status = 'PENDING' AND r.created_at <= NOW() - INTERVAL '3 days' LIMIT 10;"
+      },
+      "id": "refund-query-pending",
+      "name": "3. Query Stuck Refunds (>3 Days)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1020, 220],
+      "credentials": {
+        "postgres": {
+          "id": "neon_postgres_credential",
+          "name": "Neon PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "admin@flightsystem.com",
+        "subject": "=URGENT: Refund SLA Breach Alert (PNR: {{ $json.pnr }})",
+        "message": "=Attention Finance & Operations Team,\n\nRefund request for PNR {{ $json.pnr }} has been pending for over 3 days.\n\nRefund ID: {{ $json.refund_id }}\nAmount: ${{ $json.amount }}\nReason: {{ $json.reason }}\nCustomer: {{ $json.contact_email }}\n\nPlease review and approve immediately in Admin Dashboard."
+      },
+      "id": "refund-gmail-escalate",
+      "name": "3b. Gmail: SLA Escalation Alert",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1240, 220],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail_oauth_credential",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT (SELECT COUNT(*) FROM flights WHERE DATE(departure_time) = CURRENT_DATE) AS flights_today, (SELECT COUNT(*) FROM bookings WHERE DATE(created_at) = CURRENT_DATE AND status = 'CONFIRMED') AS bookings_today, (SELECT COALESCE(SUM(total_amount), 0) FROM bookings WHERE DATE(created_at) = CURRENT_DATE AND status = 'CONFIRMED') AS revenue_today, (SELECT COUNT(*) FROM waitlists WHERE status = 'WAITING') AS active_waitlists;"
+      },
+      "id": "ops-query-kpis",
+      "name": "4. Query Daily KPIs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1020, 380],
+      "credentials": {
+        "postgres": {
+          "id": "neon_postgres_credential",
+          "name": "Neon PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "admin@flightsystem.com",
+        "subject": "=Executive Operations Summary - Revenue: ${{ $json.revenue_today }} USD",
+        "message": "=Daily Flight System Executive Summary:\n\n- Daily Confirmed Revenue: ${{ $json.revenue_today }} USD\n- Total Bookings Created Today: {{ $json.bookings_today }}\n- Scheduled Flights Today: {{ $json.flights_today }}\n- Active Waitlisted Passengers: {{ $json.active_waitlists }}\n\nGenerated automatically by n8n Automation Engine."
+      },
+      "id": "ops-gmail-report",
+      "name": "4b. Gmail: Executive Report",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1240, 380],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail_oauth_credential",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT contact_email, COUNT(*) AS recent_booking_count FROM bookings WHERE created_at >= NOW() - INTERVAL '15 minutes' GROUP BY contact_email HAVING COUNT(*) >= 3;"
+      },
+      "id": "fraud-query-velocity",
+      "name": "5. Scan Bot & Mass-Booking Velocity",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1020, 540],
+      "credentials": {
+        "postgres": {
+          "id": "neon_postgres_credential",
+          "name": "Neon PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO audit_logs (id, action, entity_type, entity_id, actor_email, changes, source, created_at) VALUES (gen_random_uuid(), 'FRAUD_FLAG_TRIGGERED', 'BookingVelocity', '{{ $json.contact_email }}', 'n8n_security_bot', json_build_object('reason', 'Rapid booking velocity (>3 in 15m)', 'count', {{ $json.recent_booking_count }}), 'N8N', NOW());"
+      },
+      "id": "fraud-record-audit",
+      "name": "5b. Record Security Audit Alert",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1240, 540],
+      "credentials": {
+        "postgres": {
+          "id": "neon_postgres_credential",
+          "name": "Neon PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH released_holds AS (UPDATE seat_holds SET is_released = true WHERE expires_at <= NOW() AND is_released = false RETURNING seat_id), restored_seats AS (UPDATE seats s SET status = 'AVAILABLE' FROM released_holds rh WHERE s.id = rh.seat_id AND s.status = 'HELD' RETURNING s.id) SELECT COUNT(*) AS restored_seat_count FROM restored_seats;"
+      },
+      "id": "holds-auto-reconcile",
+      "name": "6. Reconcile & Restore Expired Holds",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1020, 700],
+      "credentials": {
+        "postgres": {
+          "id": "neon_postgres_credential",
+          "name": "Neon PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.customer_email }}",
+        "subject": "=IMPORTANT UPDATE: Flight {{ $json.flight_number }} Schedule Notice",
+        "message": "=Dear Passenger,\n\nWe would like to notify you regarding Flight {{ $json.flight_number }}.\n\nStatus Update: {{ $json.message }}\n\nPlease log in to your account or visit the Manage Bookings portal to view rebooking or refund credit options."
+      },
+      "id": "live-event-email",
+      "name": "7. Gmail: Live Flight Event Alert",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1020, 860],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail_oauth_credential",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "FastAPI Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Event Classifier & Normalizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Heartbeat (5m)": {
+      "main": [
+        [
+          {
+            "node": "Event Classifier & Normalizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Event Classifier & Normalizer": {
+      "main": [
+        [
+          {
+            "node": "Master Event Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Master Event Switch": {
+      "main": [
+        [
+          {
+            "node": "1. Lock Waitlist Candidate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "2. Query Checkin Passengers",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "3. Query Stuck Refunds (>3 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "4. Query Daily KPIs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "5. Scan Bot & Mass-Booking Velocity",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "6. Reconcile & Restore Expired Holds",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "7. Gmail: Live Flight Event Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1. Lock Waitlist Candidate": {
+      "main": [
+        [
+          {
+            "node": "1b. Generate 24h Claim Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1b. Generate 24h Claim Token": {
+      "main": [
+        [
+          {
+            "node": "1c. Hold Seat & Promote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1c. Hold Seat & Promote": {
+      "main": [
+        [
+          {
+            "node": "1d. Gmail: Waitlist Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Query Checkin Passengers": {
+      "main": [
+        [
+          {
+            "node": "2b. Gmail: Check-in Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2b. Gmail: Check-in Reminder": {
+      "main": [
+        [
+          {
+            "node": "2c. Log Checkin Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Query Stuck Refunds (>3 Days)": {
+      "main": [
+        [
+          {
+            "node": "3b. Gmail: SLA Escalation Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. Query Daily KPIs": {
+      "main": [
+        [
+          {
+            "node": "4b. Gmail: Executive Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5. Scan Bot & Mass-Booking Velocity": {
+      "main": [
+        [
+          {
+            "node": "5b. Record Security Audit Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
