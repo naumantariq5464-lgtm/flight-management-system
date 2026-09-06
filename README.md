@@ -1,164 +1,210 @@
-# ✈️ Production Flight Management & Autonomous Automation System
+# ✈️ Production Flight Management & Autonomous Automation System (AeroOps OS)
 
-An enterprise-grade, high-concurrency **Flight Management System** built with **FastAPI**, **Neon Serverless PostgreSQL (Async Engine)**, **n8n Cloud Automation Engine**, **Local ChromaDB + Groq LLM Policy RAG**, and a **React 19 / Vite** high-contrast UI.
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688.svg?style=flat&logo=fastapi)](https://fastapi.tiangolo.com)
+[![Neon Postgres](https://img.shields.io/badge/Database-Neon_PostgreSQL-00E599.svg?style=flat&logo=postgresql)](https://neon.tech)
+[![n8n Automation](https://img.shields.io/badge/Orchestration-n8n_Cloud-FF6D5A.svg?style=flat&logo=n8n)](https://n8n.io)
+[![ChromaDB](https://img.shields.io/badge/Vector_Store-ChromaDB-FF4F00.svg?style=flat)](https://trychroma.com)
+[![Groq LLaMA-3.3](https://img.shields.io/badge/LLM-Groq_LLaMA_3.3-F55036.svg?style=flat)](https://groq.com)
+[![React 19](https://img.shields.io/badge/Frontend-React_19_+_Vite-61DAFB.svg?style=flat&logo=react)](https://react.dev)
+
+An enterprise-grade, high-concurrency **Flight Management System & Dual-Writer Automation Platform** designed to solve overselling, handle atomic inventory row-locks, autonomously manage standby waitlists, enforce dynamic fare cancellation rules, and coordinate real-time scheduled workflows.
 
 ---
 
-## 🏗️ System Architecture & Stack
+## 🏛️ System Architecture
 
 ```
-                               ┌───────────────────────────┐
-                               │   React 19 + Vite UI      │
-                               │  (Customer + Operations)  │
-                               └─────────────┬─────────────┘
-                                             │ HTTP / REST
-                                             ▼
-                               ┌───────────────────────────┐
-                               │     FastAPI Backend       │
-                               │  (Async Row-Level Locks)  │
-                               └──┬─────────────────────┬──┘
-                                  │                     │
-           Live Webhooks (POST)   │                     │ Direct AsyncPG Pooling
-                                  ▼                     ▼
-┌──────────────────────────────────────┐        ┌──────────────────────────┐
-│          n8n Cloud Engine            │        │  Neon Serverless Postgres│
-│ (Master Event Switch & Heartbeat)    │◄───────┤  (Single Ledger Truth)   │
-└──────────────────┬───────────────────┘        └──────────────────────────┘
-                   │ Direct SQL & Gmail
-                   ▼
-┌──────────────────────────────────────┐
-│  - Waitlist Auto-Promotion           │
-│  - Check-in Reminders (Suppression)  │
-│  - Refund SLA Escalation Alert       │
-│  - Daily Ops Revenue KPI Report      │
-│  - Fraud & Bot Velocity Detection    │
-│  - Expired Seat-Hold Reconciliation  │
-│  - Live Flight Event Notifications   │
-└──────────────────────────────────────┘
+                               ┌───────────────────────────────────┐
+                               │       React 19 + Vite UI          │
+                               │   (Customer & Admin Operations)   │
+                               └─────────────────┬─────────────────┘
+                                                 │ HTTP / REST
+                                                 ▼
+                               ┌───────────────────────────────────┐
+                               │         FastAPI Backend           │
+                               │   (Async Row-Level Locks)         │
+                               └──┬─────────────────────────────┬──┘
+                                  │                             │
+           Live Webhooks (POST)   │                             │ Direct AsyncPG
+                                  ▼                             ▼
+┌──────────────────────────────────────────────┐        ┌──────────────────────────────┐
+│             n8n Cloud Engine                 │        │   Neon Serverless Postgres   │
+│   (Unified Master Event Switch + Cron)       │◄───────┤   (Single Source of Truth)   │
+└──────────────────────┬───────────────────────┘        └──────────────────────────────┘
+                       │ Direct SQL & Gmail
+                       ▼
+┌──────────────────────────────────────────────┐
+│  - 1. Waitlist Auto-Promotion (SKIP LOCKED)  │
+│  - 2. Check-in Reminders (Suppression)       │
+│  - 3. Refund SLA Escalation Alerts (>3 Days) │
+│  - 4. Executive Daily Ops & Revenue Summary  │
+│  - 5. Fraud Velocity Bot Scanner (>3 in 15m) │
+│  - 6. Seat-Hold State Reconciliation         │
+│  - 7. Live Flight Event Notifications (Gmail)│
+└──────────────────────────────────────────────┘
 ```
 
-* **Backend Engine:** FastAPI (Python 3.14 / 3.11+), Pydantic v2, SQLAlchemy 2.0 Async, asyncpg.
-* **Database Ledger:** Neon Serverless PostgreSQL with atomic `SELECT ... FOR UPDATE` & `SKIP LOCKED` concurrency guarantees.
-* **Orchestration & Background Workflows:** n8n Cloud Master Workflow with unified Switch node routing.
-* **Policy AI Assistant (RAG):** Local ChromaDB Vector Store (`all-MiniLM-L6-v2`) with Groq LLaMA-3.3 high-speed inference.
-* **Frontend Application:** React 19, Vite, Lucide Icons, high-contrast monochrome design system.
+---
+
+## 📋 Honest Feature Completion & Deliverables Status
+
+All 10 Core Domains from the Capstone Specification are fully implemented, validated, and live:
+
+| # | Domain & Feature Area | Status | Implementation Details |
+|---|---|:---:|---|
+| **1** | **Admin & Flight Management** | ✅ **100% Done** | Create flights with physical seat layout (20 First, 30 Business, 50 Economy), seat capacity integrity validation, and schedule update cascade. |
+| **2** | **Search & Fare Rules** | ✅ **100% Done** | Live available seat counts, class threshold validation, Basic Economy vs. Flexible Fares (+500 waitlist boost), multi-currency support. |
+| **3** | **Concurrency & Overselling Prevention** | ✅ **100% Done** | Atomic PostgreSQL row-level locks (`SELECT ... FOR UPDATE`), 10-minute seat holds with auto-expiry, and `X-Idempotency-Key` headers. |
+| **4** | **Booking Cutoffs & Fare Computation** | ✅ **100% Done** | Economy closed 60m before departure; First/Business closed 30m before departure. Dynamic fare calculation with flexible premiums. |
+| **5** | **Cancellations & Travel Credits** | ✅ **100% Done** | Self-service & admin cancellation, partial group cancellation, automatic 1-year travel credit vouchers, and full refund tracking. |
+| **6** | **Autonomous Waitlist (`SKIP LOCKED`)** | ✅ **100% Done** | Standby queue with priority formula (Loyalty Tier + Flexible fare + FIFO). n8n cron claims freed seats and sends 24h claim tokens. |
+| **7** | **24-Hour Claim Redemption** | ✅ **100% Done** | Dedicated redemption portal (`/waitlist`) validating tokens and converting held seats to confirmed PNRs. |
+| **8** | **Unified n8n Master Automation** | ✅ **100% Done** | Single pipeline with central **Switch Node** routing 7 independent branches (Check-in reminders, SLA escalation, Ops reports, Fraud bot). |
+| **9** | **Security & Rate Limiting** | ✅ **100% Done** | In-memory sliding window rate limiter: Max 5 login attempts & 3 signups per 60s with `HTTP 429 Retry-After` headers. |
+| **10** | **Policy AI Assistant (RAG)** | ✅ **100% Done** | Local ChromaDB vector store with Groq LLaMA-3.3 high-speed inference, rendering markdown into native high-contrast UI components. |
 
 ---
 
-## 📊 Comprehensive Feature Status & Implementation Matrix
+## 🚀 How to Run Locally (Step-by-Step)
 
-| Domain | Feature Specification | Implementation Status | Core Mechanism |
-|---|---|---|---|
-| **Inventory & Schedule** | Dynamic Flight Creation (100 Seats: 20 First, 30 Business, 50 Economy) | ✅ **100% Completed** | Multi-class seat map auto-generator with physical seat positioning |
-| **Inventory & Schedule** | Capacity Integrity & Integer Validation | ✅ **100% Completed** | Pydantic v2 validators preventing fractional or negative allocations |
-| **Inventory & Schedule** | Flight Schedule Update & Cancellation Cascade | ✅ **100% Completed** | Audit logging + instant n8n webhook dispatch to affected travelers |
-| **Concurrency & Booking** | Atomic Seat Decrement & Overselling Prevention | ✅ **100% Completed** | PostgreSQL Row-Level Locking (`SELECT ... FOR UPDATE`) |
-| **Concurrency & Booking** | 10-Minute Temporary Seat Holds | ✅ **100% Completed** | Temporary hold tokens with countdown timer & automatic release |
-| **Concurrency & Booking** | Idempotency Key Contract | ✅ **100% Completed** | `X-Idempotency-Key` caching header to prevent double charges |
-| **Concurrency & Booking** | Class-Specific Booking Cutoffs | ✅ **100% Completed** | Economy 60m cutoff; First/Business 30m before departure |
-| **Pricing & Policies** | Basic Economy vs. Flexible Fare Rules | ✅ **100% Completed** | Flexible fares allow free selection + +500 waitlist priority points |
-| **Pricing & Policies** | Travel Credit Voucher Wallet | ✅ **100% Completed** | 1-year valid reusable voucher codes applied at checkout |
-| **Waitlist & Standby** | Standby Queue with Priority Scoring | ✅ **100% Completed** | Formula: Loyalty tier points + Flexible fare boost + Join timestamp |
-| **Waitlist & Standby** | Autonomous Waitlist Promotion (`SKIP LOCKED`) | ✅ **100% Completed** | n8n cron claims freed seats, holds them, & issues 24-hr claim token |
-| **Waitlist & Standby** | 24-Hour Promotion Claim Redemption Portal | ✅ **100% Completed** | Dedicated UI input converting claim tokens to confirmed PNRs |
-| **Automations & Ops** | 24-Hour Check-in Reminders | ✅ **100% Completed** | Hourly n8n scanner suppressing alerts if flight is cancelled |
-| **Automations & Ops** | Refund SLA Escalation Alerts | ✅ **100% Completed** | Detects refunds pending >3 days and sends urgent alert to Admin |
-| **Automations & Ops** | Executive Daily Operations Summary | ✅ **100% Completed** | Daily 23:59 summary: Revenue, confirmed bookings, load factors |
-| **Automations & Ops** | Bot & Mass-Booking Velocity Detection | ✅ **100% Completed** | Flags >3 rapid bookings in 15m from identical IP/email |
-| **Security & Auditing** | Sliding-Window Rate Limiting | ✅ **100% Completed** | Max 5 login attempts & 3 signups per 60s (HTTP 429 Retry-After) |
-| **Security & Auditing** | Full Immutable Audit Trail | ✅ **100% Completed** | Complete record of admin/customer writes, diffs, and actor emails |
-| **Policy AI Assistant** | Local ChromaDB Semantic Policy RAG | ✅ **100% Completed** | Embedded policies formatted into clean UI elements via Groq LLM |
-
----
-
-## ⚡ Quickstart & Setup Guide
-
-### 1. Prerequisites
-* Python 3.11+ / 3.14
-* Node.js 18+ and npm
-* Neon PostgreSQL connection string
-* Groq API Key (for RAG Assistant)
-* n8n Cloud Account
-
----
-
-### 2. Backend Setup
+### 1️⃣ Clone the Repository
 ```bash
-# Navigate to backend directory
+git clone https://github.com/naumantariq5464-lgtm/flight-management-system.git
+cd flight-management-system
+```
+
+---
+
+### 2️⃣ Backend Setup (FastAPI + Neon PostgreSQL)
+```bash
 cd backend
 
-# Create & activate virtual environment
+# Create virtual environment
 python -m venv venv
-# Windows:
+
+# Activate virtual environment
+# On Windows:
 venv\Scripts\activate
-# macOS/Linux:
+# On Linux/macOS:
 source venv/bin/activate
 
-# Install dependencies
+# Install all dependencies
 pip install -r requirements.txt
 
-# Create .env from template
+# Configure Environment Variables
 cp .env.example .env
-# Edit .env with your Neon DB URL, Groq Key, and n8n webhook URL
+# Open .env and add your Neon Database URL and Groq API Key
 
-# Start FastAPI server
+# Start the Backend Server
 uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
-* **API Documentation (Swagger UI):** `http://127.0.0.1:8000/docs`
-* **Health Check:** `http://127.0.0.1:8000/health`
+* **Swagger API Docs:** `http://127.0.0.1:8000/docs`
+* **Health Endpoint:** `http://127.0.0.1:8000/health`
 
 ---
 
-### 3. Frontend Setup
+### 3️⃣ Frontend Setup (React 19 + Vite)
 ```bash
-# Navigate to frontend directory
+# Open a new terminal in the project root
 cd frontend
 
-# Install packages
+# Install dependencies
 npm install
 
-# Start Vite development server
+# Start the development server
 npm run dev
 ```
-* **Web App URL:** `http://localhost:5173`
+* **Frontend Web App:** `http://localhost:5173`
 
 ---
 
-### 4. n8n Cloud Automation Setup
-1. Log into your [n8n Cloud instance](https://smithackathon.app.n8n.cloud).
-2. Go to **Workflows** -> **Add Workflow** -> Click `...` (Top Right) -> **"Import from File"**.
-3. Select the unified master workflow: `n8n/flight_management_master_workflow.json`.
+### 4️⃣ n8n Cloud Master Workflow Setup
+1. Log into your [n8n Cloud](https://smithackathon.app.n8n.cloud).
+2. Go to **Workflows** ➔ **Add Workflow** ➔ Click `...` (Top Right) ➔ **"Import from File"**.
+3. Select `n8n/flight_management_master_workflow.json`.
 4. Connect your **Neon PostgreSQL** and **Gmail OAuth2** credentials.
-5. Switch the workflow toggle from **Inactive** to **ACTIVE (ON)**.
+5. Switch the toggle from **Inactive** to **ACTIVE (ON)**.
 
 ---
 
-## 🧪 Testing the End-to-End Autonomous Lifecycle
+## 🔑 Default Credentials
 
-### Step 1: Default Super Admin Credentials
+### Single Super Admin Account
+* **URL:** `http://localhost:5173/admin-login`
 * **Email:** `admin@flightsystem.com`
 * **Password:** `Admin@123456`
-* **Role:** `SUPER_ADMIN` (Full operational & inventory authority)
+* **Role:** `SUPER_ADMIN`
 
-### Step 2: Customer Booking Flow
-1. Visit `http://localhost:5173/` and search for flights (e.g., `LHE` → `DXB`).
-2. Select seats on the interactive seat map (Economy, Business, or First Class).
-3. Proceed to Checkout and complete booking with instantaneous PNR generation and printable electronic ticket receipt.
+### Customer Registration
+* Customers can self-register at `http://localhost:5173/` (Protected by 3 requests/minute rate limiting).
 
-### Step 3: Automated Event Dispatch
-Run the built-in n8n test suite to verify all switch branches:
+---
+
+## 🧪 Automated Testing & Verification
+
+### 1. Test All n8n Automation Branches (1-Click)
+Run the automated test suite from the `backend` directory:
 ```bash
 cd backend
 python test_n8n_master.py
 ```
+This tests:
+1. Waitlist Auto-Promotion
+2. 24h Check-in Reminders
+3. Refund SLA Escalations
+4. Daily Ops KPI Reports
+5. Live Flight Cancellation Alerts
 
-### Step 4: Autonomous Waitlist Auto-Promotion
-1. Navigate to **Waitlist Portal** (`/waitlist`) and join the standby queue for a flight.
-2. Cancel an existing booking on that flight from **Manage Bookings** (`/manage-bookings`).
-3. n8n's background job automatically claims the newly available seat with row-locking (`FOR UPDATE SKIP LOCKED`), promotes the passenger, generates a 24-hour claim token, and emails the passenger.
-4. Enter the claim token into **Redeem Claim Token** to confirm the seat.
+### 2. Test Rate Limiting
+Attempting more than 5 rapid logins triggers:
+```json
+HTTP/1.1 429 Too Many Requests
+{
+  "detail": "Rate limit exceeded: Maximum 5 requests per 60s. Please retry in 58 seconds."
+}
+```
 
 ---
 
-## 🛡️ License & Authorship
-Developed as a production-grade Capstone Demonstration for Flight Management Systems, High-Concurrency Database Architecture, and Autonomous n8n Workflow Coordination.
+## 📂 Project Structure
+
+```
+flight-management-system/
+├── backend/
+│   ├── app/
+│   │   ├── auth/           # JWT & Super Admin Dependencies
+│   │   ├── config/         # App Settings & Environment Loaders
+│   │   ├── database/       # Async Engine & Session Factory
+│   │   ├── models/         # SQLAlchemy 2.0 Async Models
+│   │   ├── repositories/   # CRUD Database Access Layer
+│   │   ├── routers/        # Admin, Customer, & Auth API Routes
+│   │   ├── schemas/        # Pydantic v2 Request/Response Schemas
+│   │   ├── services/       # Core Business Logic & Concurrency
+│   │   └── utils/          # Enums, Exceptions, Rate Limiter, n8n Client
+│   ├── requirements.txt    # Python Dependencies
+│   ├── test_n8n_master.py  # Automation Test Runner
+│   └── .env.example        # Backend Environment Template
+├── frontend/
+│   ├── src/
+│   │   ├── api/            # Axios API Client with Interceptors
+│   │   ├── components/     # SeatMapModal, AuthModal, RAGChatWidget
+│   │   ├── context/        # Auth & Toast Notification Providers
+│   │   └── pages/          # Admin Dashboard, Search, Checkout, Waitlist
+│   ├── package.json
+│   └── vite.config.js
+├── n8n/
+│   └── flight_management_master_workflow.json # Unified Master Pipeline
+├── rag/
+│   ├── documents/          # Airline Policies (Markdown)
+│   ├── chunking.py         # Semantic Section Chunking
+│   ├── embedding.py        # HuggingFace MiniLM Embeddings
+│   └── ingestion.py        # ChromaDB Vector Ingestion
+├── .gitignore
+├── .env.example
+└── README.md
+```
+
+---
+
+## 📜 License
+Developed for the Flight Management Capstone Demonstration. Built with clean architecture, enterprise concurrency patterns, and full observability.
